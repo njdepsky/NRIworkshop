@@ -3,6 +3,5 @@ dash-bootstrap-components==1.5.0
 plotly==5.18.0
 pandas==2.1.4
 numpy==1.26.2
-statsmodels==0.14.4
-scipy==1.11.4
+statsmodels==0.14.1
 shapely==2.0.2
