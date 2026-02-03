@@ -11,7 +11,6 @@ from threading import Timer
 
 def run_visualization_app(
     data_path,
-    geojson_path='geom.geojson',  # NEW: Optional separate GeoJSON file
     # Scatter plot styling
     scatter_marker_color='#f0a179',
     scatter_marker_size=14,  # Updated from 7 to 9
@@ -68,10 +67,7 @@ def run_visualization_app(
     Parameters:
     -----------
     data_path : str
-        Path to CSV file with indicator data
-    geojson_path : str, optional
-        Path to GeoJSON file with country geometries (faster than CSV with WKT).
-        If provided, CSV doesn't need geometry column. Default: None
+        Path to CSV file with data and geometry column
     
     Scatter plot styling:
     scatter_marker_color : str
@@ -555,7 +551,7 @@ def run_visualization_app(
             actual_vmin = map_default_vmin if map_default_vmin is not None else 0
             actual_vmax = map_default_vmax if map_default_vmax is not None else 1
         
-        if not parsed_geometries:
+        if 'geometry' not in df.columns:
             fig = go.Figure()
             fig.add_annotation(
                 text="No geometry data available.",
@@ -570,19 +566,17 @@ def run_visualization_app(
         features_no_data = []
         
         for idx, row in df.iterrows():
-            # Use ADM0 to lookup geometry
-            adm0 = row.get('ADM0')
-            if adm0 and adm0 in parsed_geometries:
-                geom_json = parsed_geometries[adm0]
+            if idx in parsed_geometries:
+                geom_json = parsed_geometries[idx]
                 
                 has_data = pd.notna(values_transformed[idx]) and np.isfinite(values_transformed[idx])
                 
                 feature = {
                     "type": "Feature",
-                    "id": adm0,  # Use ADM0 as ID
+                    "id": str(idx),
                     "properties": {
                         "value": values_transformed[idx] if has_data else None,
-                        "country": row.get('COUNTRY', adm0),
+                        "country": row.get('COUNTRY', row.get('ADM0', f'Country_{idx}')),
                         "label": label
                     },
                     "geometry": geom_json
@@ -691,46 +685,22 @@ def run_visualization_app(
     
     print(f"Loaded {len(df)} countries with {len(numeric_cols)} numeric variables")
     
-    # Load geometry
-    parsed_geometries = {}
+    # Pre-parse geometry
+    print("Pre-parsing geometry data...")
+    from shapely import wkt
+    from shapely.geometry import mapping
     
-    if geojson_path:
-        # Use separate GeoJSON file (much faster!)
-        print(f"Loading geometry from GeoJSON: {geojson_path}")
-        import json
-        
-        with open(geojson_path, 'r') as f:
-            geojson_data = json.load(f)
-        
-        # Create mapping from ADM0 to geometry
-        for feature in geojson_data['features']:
-            adm0 = feature['properties'].get('ADM0')
-            if adm0:
-                parsed_geometries[adm0] = feature['geometry']
-        
-        print(f"Loaded {len(parsed_geometries)} country geometries from GeoJSON")
-        
-    else:
-        # Fall back to parsing WKT from CSV geometry column
-        print("Pre-parsing geometry data from CSV WKT column...")
-        from shapely import wkt
-        from shapely.geometry import mapping
-        
-        if 'geometry' not in df.columns:
-            print("ERROR: No geometry column in CSV and no geojson_path provided")
-            raise ValueError("Must provide either CSV with geometry column or separate geojson_path")
-        
-        for idx, row in df.iterrows():
-            if pd.notna(row.get('geometry')):
-                try:
-                    geom = wkt.loads(row['geometry'])
-                    geom_json = mapping(geom)
-                    parsed_geometries[idx] = geom_json
-                except Exception as e:
-                    print(f"Warning: Could not parse geometry for {row.get('COUNTRY', idx)}: {e}")
-        
-        print(f"Successfully parsed {len(parsed_geometries)} country geometries from CSV")
-
+    parsed_geometries = {}
+    for idx, row in df.iterrows():
+        if pd.notna(row.get('geometry')):
+            try:
+                geom = wkt.loads(row['geometry'])
+                geom_json = mapping(geom)
+                parsed_geometries[idx] = geom_json
+            except Exception as e:
+                print(f"Warning: Could not parse geometry for {row.get('COUNTRY', idx)}: {e}")
+    
+    print(f"Successfully parsed {len(parsed_geometries)} country geometries")
     
     # Initialize app
     app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])

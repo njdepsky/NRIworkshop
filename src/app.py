@@ -31,32 +31,12 @@ if data_path is None:
     print(f"Files in current directory: {os.listdir('.')}")
     sys.exit(1)
 
-# Try to find GeoJSON file
-geojson_paths = [
-    'geom.geojson',
-    os.path.join(os.path.dirname(__file__), 'geom.geojson'),
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'geom.geojson'),
-    os.path.join(os.getcwd(), 'geom.geojson'),
-]
-
-geojson_path = None
-for path in geojson_paths:
-    if os.path.exists(path):
-        geojson_path = path
-        print(f"Found GeoJSON file at: {path}")
-        break
-
-if geojson_path is None:
-    print("Warning: No GeoJSON file found, will try to use geometry column in CSV")
-
-
 # Get port from environment variable (for cloud deployment) or use default
 port = int(os.environ.get('PORT', 8050))
 
 # Run the app
 run_visualization_app(
     data_path=data_path,
-    geojson_path=geojson_path,  # Pass GeoJSON path (or None to use CSV geometry)
     dashboard_title='NRI Indicator Dashboard',
     port=port,
     debug=False,  # Set to False for production
