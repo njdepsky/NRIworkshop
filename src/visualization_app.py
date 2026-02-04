@@ -11,7 +11,7 @@ from threading import Timer
 
 def run_visualization_app(
     data_path,
-    geojson_path='geom.geojson',  # NEW: Optional separate GeoJSON file
+    geojson_path='/Users/njdepsky/Dropbox/UN/NRI/Data/geom.geojson',  # NEW: Optional separate GeoJSON file
     # Scatter plot styling
     scatter_marker_color='#f0a179',
     scatter_marker_size=14,  # Updated from 7 to 9
@@ -958,7 +958,7 @@ def run_visualization_app(
                             style={
                                 'height': 'calc((100vh - 120px) * 0.62)', 
                                 'overflowY': 'scroll',
-                                'fontSize': '14px',
+                                'fontSize': '18px',
                                 'padding': '6px',
                                 'border': '1px solid #ccc',
                                 'borderRadius': '4px',
